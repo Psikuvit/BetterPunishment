@@ -1,0 +1,7 @@
+name: BetterPunishment
+version: '${project.version}'
+main: me.psikuvit.betterpunishment.BetterPunishment
+api-version: '1.13'
+
+commands:
+  bp:
