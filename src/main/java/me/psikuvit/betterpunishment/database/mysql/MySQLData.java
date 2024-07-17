@@ -1,13 +1,8 @@
-package me.psikuvit.betterpunishment.database;
+package me.psikuvit.betterpunishment.database.mysql;
 
 import me.psikuvit.betterpunishment.BetterPunishment;
 import me.psikuvit.betterpunishment.PunishmentManager;
-import me.psikuvit.betterpunishment.punishements.Ban;
-import me.psikuvit.betterpunishment.punishements.Blacklist;
-import me.psikuvit.betterpunishment.punishements.Kick;
-import me.psikuvit.betterpunishment.punishements.Mute;
-import me.psikuvit.betterpunishment.punishements.TempBan;
-import me.psikuvit.betterpunishment.punishements.TempMute;
+import me.psikuvit.betterpunishment.database.Database;
 import me.psikuvit.betterpunishment.punishements.interfaces.Durable;
 import me.psikuvit.betterpunishment.punishements.interfaces.Punishment;
 import me.psikuvit.betterpunishment.utils.PunishmentTypes;
@@ -19,20 +14,22 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
 
-public class MySQLData {
+public class MySQLData implements Database {
 
     private final MySQL mySQL;
     private final PunishmentManager punishmentManager;
 
     public MySQLData(BetterPunishment plugin) {
-        this.mySQL = plugin.getMySQL();
+        super();
+        this.mySQL = new MySQL(plugin);
         this.punishmentManager = plugin.getPunishmentManager();
     }
 
-    public void loadTeams() {
+    @Override
+    public void loadData() {
         try (Connection connection = mySQL.getConnection()) {
 
-            PreparedStatement activeStmt = connection.prepareStatement("SELECT punisher, punished, reason, type, duration, remaining_duration, ban_time FROM active_punishments");
+            PreparedStatement activeStmt = connection.prepareStatement("SELECT punisher, punished, reason, type, duration, remaining_duration, punishment_time FROM active_punishments");
             ResultSet activeSet = activeStmt.executeQuery();
 
             while (activeSet.next()) {
@@ -61,22 +58,22 @@ public class MySQLData {
 
             }
 
-            PreparedStatement unactiveStmt = connection.prepareStatement("SELECT punisher, punished, reason, type, duration, ban_time FROM unactive_punishments");
-            ResultSet unactiveSet = unactiveStmt.executeQuery();
+            PreparedStatement nonactiveStmt = connection.prepareStatement("SELECT punisher, punished, reason, type, duration, punishment_time FROM nonactive_punishments");
+            ResultSet nonactiveSet = nonactiveStmt.executeQuery();
 
-            while (unactiveSet.next()) {
-                UUID punisher = UUID.fromString(unactiveSet.getString("punisher"));
-                UUID punished = UUID.fromString(unactiveSet.getString("punished"));
+            while (nonactiveSet.next()) {
+                UUID punisher = UUID.fromString(nonactiveSet.getString("punisher"));
+                UUID punished = UUID.fromString(nonactiveSet.getString("punished"));
 
-                String reason = unactiveSet.getString("reason");
+                String reason = nonactiveSet.getString("reason");
 
-                String typeString = unactiveSet.getString("type");
+                String typeString = nonactiveSet.getString("type");
                 PunishmentTypes type = PunishmentTypes.valueOf(typeString);
 
-                String durationString = unactiveSet.getString("duration");
+                String durationString = nonactiveSet.getString("duration");
                 long duration = Utils.parse(durationString);
 
-                String banTime = unactiveSet.getString("ban_time");
+                String banTime = nonactiveSet.getString("ban_time");
 
                 Punishment punishment = initPunishment(punisher, punished, reason, type, duration, banTime);
                 if (punishment instanceof Durable) {
@@ -92,12 +89,13 @@ public class MySQLData {
         }
     }
 
-    public void saveTeams() {
+    @Override
+    public void saveData() {
         try (Connection connection = mySQL.getConnection()) {
 
             PreparedStatement activeStmt = connection.prepareStatement(
-                    "INSERT INTO active_punishments (punisher, punished, reason, type, duration, remaining_duration, ban_time) VALUES (?, ?, ?, ?, ?, ?, ?) " +
-                            "ON DUPLICATE KEY UPDATE type = VALUES(type), duration = VALUES(duration), remaining_duration = VALUES(remaining_duration), ban_time = VALUES(ban_time)");
+                    "INSERT INTO active_punishments (punisher, punished, reason, type, duration, remaining_duration, punishment_time) VALUES (?, ?, ?, ?, ?, ?, ?) " +
+                            "ON DUPLICATE KEY UPDATE type = VALUES(type), duration = VALUES(duration), remaining_duration = VALUES(remaining_duration), punishment_time = VALUES(punishment_time)");
             
             for (Punishment punishment : punishmentManager.getActivePunishments()) {
 
@@ -121,27 +119,27 @@ public class MySQLData {
             }
 
 
-            PreparedStatement unactiveStmt = connection.prepareStatement(
-                    "INSERT INTO unactive_punishments (punisher, punished, reason, type, duration, ban_time) VALUES (?, ?, ?, ?, ?, ?)");
+            PreparedStatement nonactiveStmt = connection.prepareStatement(
+                    "INSERT INTO nonactive_punishments (punisher, punished, reason, type, duration, punishment_time) VALUES (?, ?, ?, ?, ?, ?)");
 
             PreparedStatement deleteActiveStmt = connection.prepareStatement(
                     "DELETE FROM active_punishments WHERE punisher = ? AND punished = ? AND reason = ? AND type = ?");
 
             for (Punishment punishment : punishmentManager.getNonActive()) {
 
-                unactiveStmt.setString(1, punishment.getPunisher().toString());
-                unactiveStmt.setString(2, punishment.getPunished().toString());
-                unactiveStmt.setString(3, punishment.getReason());
-                unactiveStmt.setString(4, punishment.getPunishmentType().toString());
-                unactiveStmt.setString(6, punishment.getDate());
+                nonactiveStmt.setString(1, punishment.getPunisher().toString());
+                nonactiveStmt.setString(2, punishment.getPunished().toString());
+                nonactiveStmt.setString(3, punishment.getReason());
+                nonactiveStmt.setString(4, punishment.getPunishmentType().toString());
+                nonactiveStmt.setString(6, punishment.getDate());
                 if (punishment instanceof Durable) {
                     Durable durable = (Durable) punishment;
-                    unactiveStmt.setString(5, Utils.getDurationString(durable.getDuration()));
+                    nonactiveStmt.setString(5, Utils.getDurationString(durable.getDuration()));
                 } else {
-                    unactiveStmt.setString(5, "0");
+                    nonactiveStmt.setString(5, "0");
                 }
 
-                unactiveStmt.executeUpdate();
+                nonactiveStmt.executeUpdate();
 
                 deleteActiveStmt.setString(1, punishment.getPunisher().toString());
                 deleteActiveStmt.setString(2, punishment.getPunished().toString());
@@ -154,38 +152,14 @@ public class MySQLData {
         }
     }
 
-    public Punishment initPunishment(UUID punisher, UUID punished, String reason, PunishmentTypes type, long remaining, String date) {
-        Punishment punishment;
-
-        if (!type.isPermanent()) {
-            switch (type) {
-                case TEMP_BAN:
-                    punishment = new TempBan(punisher, punished, reason, remaining, date);
-                    break;
-                case TEMP_MUTE:
-                    punishment = new TempMute(punisher, punished, reason, remaining, date);
-                    break;
-                default:
-                    throw new IllegalArgumentException("Unsupported punishment type: " + type);
+    public void disconnectMySQL() {
+        try {
+            if (mySQL.getConnection() != null && !mySQL.getConnection().isClosed()) {
+                mySQL.getConnection().close();
+                Utils.log("Disconnected from MySQL");
             }
-        } else {
-            switch (type) {
-                case BAN:
-                    punishment = new Ban(punisher, punished, reason, date);
-                    break;
-                case KICK:
-                    punishment = new Kick(punisher, punished, reason, date);
-                    break;
-                case MUTE:
-                    punishment = new Mute(punisher, punished, reason, date);
-                    break;
-                case BLACKLIST:
-                    punishment = new Blacklist(punisher, punished, reason, date);
-                    break;
-                default:
-                    throw new IllegalArgumentException("Unsupported punishment type: " + type);
-            }
+        } catch (SQLException exception) {
+            Utils.log("Couldn't disconnect from database");
         }
-        return punishment;
     }
 }

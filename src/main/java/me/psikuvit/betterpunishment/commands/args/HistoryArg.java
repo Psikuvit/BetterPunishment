@@ -51,7 +51,7 @@ public class HistoryArg extends CommandAbstract {
                 player.sendMessage(Utils.color("&b- " + type + ": by " + punisher.getName() + " punished: " + punished.getName() + " for " + reason + " on " + date));
             }
 
-        } else if (args[0].equalsIgnoreCase("unactive")) {
+        } else if (args[0].equalsIgnoreCase("nonactive")) {
             List<Punishment> punishments = new ArrayList<>(plugin.getPunishmentManager().getNonActive());
 
             for (Punishment punishment : punishments) {
@@ -81,7 +81,7 @@ public class HistoryArg extends CommandAbstract {
 
     @Override
     public String correctArg() {
-        return "/bp history <active/unactive>";
+        return "/bp history <active/nonactive>";
     }
 
     @Override

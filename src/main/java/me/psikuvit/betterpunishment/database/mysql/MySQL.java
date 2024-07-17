@@ -1,4 +1,4 @@
-package me.psikuvit.betterpunishment.database;
+package me.psikuvit.betterpunishment.database.mysql;
 
 import me.psikuvit.betterpunishment.BetterPunishment;
 import me.psikuvit.betterpunishment.utils.Utils;
@@ -19,11 +19,11 @@ public class MySQL {
     private Connection connection;
 
     public MySQL(BetterPunishment plugin) {
-        this.host = plugin.getConfig().getString("mysql.host");
-        this.port = plugin.getConfig().getString("mysql.port");
-        this.database = plugin.getConfig().getString("mysql.database");
-        this.username = plugin.getConfig().getString("mysql.username");
-        this.password = plugin.getConfig().getString("mysql.password");
+        this.host = plugin.getConfigUtils().getMySQLHost();
+        this.port = plugin.getConfigUtils().getMySQLPort();
+        this.database = plugin.getConfigUtils().getMySQLDatabase();
+        this.username = plugin.getConfigUtils().getMySQLUser();
+        this.password = plugin.getConfigUtils().getMySQLPassword();
 
         connectMySQL();
         registerMySQL();
@@ -40,28 +40,16 @@ public class MySQL {
         }
     }
 
-    // Disconnect from Database
-    public void disconnectMySQL() {
-        try {
-            if (connection != null && !connection.isClosed()) {
-                connection.close();
-                Utils.log("Disconnected from MySQL");
-            }
-        } catch (SQLException exception) {
-            Utils.log("Couldn't disconnect from database");
-        }
-    }
-
     // Setting up the Database
     public void registerMySQL() {
         try {
             if (isConnected()) {
                 PreparedStatement activeStmt = connection.prepareStatement("CREATE TABLE IF NOT EXISTS active_punishments (punisher VARCHAR(100)" +
-                        ", punished VARCHAR(100), reason VARCHAR(100), type VARCHAR(100), duration VARCHAR(100), remaining_duration VARCHAR(100), ban_time VARCHAR(100))");
+                        ", punished VARCHAR(100), reason VARCHAR(100), type VARCHAR(100), duration VARCHAR(100), remaining_duration VARCHAR(100), punishment_time VARCHAR(100))");
                 activeStmt.executeUpdate();
-                PreparedStatement unactiveStmt = connection.prepareStatement("CREATE TABLE IF NOT EXISTS unactive_punishments (punisher VARCHAR(100)" +
-                        ", punished VARCHAR(100), reason VARCHAR(100), type VARCHAR(100), duration VARCHAR(100), ban_time VARCHAR(100))");
-                unactiveStmt.executeUpdate();
+                PreparedStatement nonactiveStmt = connection.prepareStatement("CREATE TABLE IF NOT EXISTS nonactive_punishments (punisher VARCHAR(100)" +
+                        ", punished VARCHAR(100), reason VARCHAR(100), type VARCHAR(100), duration VARCHAR(100), punishment_time VARCHAR(100))");
+                nonactiveStmt.executeUpdate();
             } else {
                 Utils.log("Failed to register database: No connection");
             }
