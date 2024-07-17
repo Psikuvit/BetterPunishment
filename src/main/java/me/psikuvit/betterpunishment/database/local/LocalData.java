@@ -13,6 +13,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Objects;
 import java.util.UUID;
 
 public class LocalData implements Database {
@@ -36,17 +37,17 @@ public class LocalData implements Database {
 
         for (String key : activeConfig.getKeys(false)) {
             UUID punishedUUID = UUID.fromString(key);
-            UUID punisherUUID = UUID.fromString(activeConfig.getString(key + ".punisher"));
+            UUID punisherUUID = UUID.fromString(Objects.requireNonNull(activeConfig.getString(key + ".punisher")));
 
             String reason = activeConfig.getString(key + ".reason");
             PunishmentTypes type = PunishmentTypes.valueOf(activeConfig.getString(key + ".type"));
 
             String date = activeConfig.getString(key + ".date");
 
-            String durationStr = activeConfig.getString(key + ".duration");
+            String durationStr = Objects.requireNonNull(activeConfig.getString(key + ".duration"));
             long duration = Utils.parse(durationStr);
 
-            String remainingTimeStr = activeConfig.getString(key + ".remainingTime");
+            String remainingTimeStr = Objects.requireNonNull(activeConfig.getString(key + ".remainingTime"));
             long remainingTime = Utils.parse(remainingTimeStr);
 
             Punishment punishment = initPunishment(punisherUUID, punishedUUID, reason, type, remainingTime, date);
@@ -60,14 +61,14 @@ public class LocalData implements Database {
 
         for (String key : nonactiveConfig.getKeys(false)) {
             UUID punishedUUID = UUID.fromString(key);
-            UUID punisherUUID = UUID.fromString(activeConfig.getString(key + ".punisher"));
+            UUID punisherUUID = UUID.fromString(Objects.requireNonNull(activeConfig.getString(key + ".punisher")));
 
             String reason = activeConfig.getString(key + ".reason");
             PunishmentTypes type = PunishmentTypes.valueOf(activeConfig.getString(key + ".type"));
 
             String date = activeConfig.getString(key + ".date");
 
-            String durationStr = activeConfig.getString(key + ".duration");
+            String durationStr = Objects.requireNonNull(activeConfig.getString(key + ".duration"));
             long duration = Utils.parse(durationStr);
 
             Punishment punishment = initPunishment(punisherUUID, punishedUUID, reason, type, duration, date);
